@@ -10,8 +10,14 @@ type Tarea = {
 };
 
 export default function Home() {
-  // Lista de tareas (empieza vacía)
+  // Lista de tareas activas
   const [tareas, setTareas] = useState<Tarea[]>([]);
+
+  // Lista de tareas eliminadas (la papelera)
+  const [papelera, setPapelera] = useState<Tarea[]>([]);
+
+  // Qué vista se está mostrando: la lista normal o la papelera
+  const [vista, setVista] = useState<"tareas" | "papelera">("tareas");
 
   // Texto que el usuario está escribiendo en el input de crear
   const [nuevaTarea, setNuevaTarea] = useState("");
@@ -26,12 +32,12 @@ export default function Home() {
   function crearTarea(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter" && nuevaTarea.trim() !== "") {
       const tarea: Tarea = {
-        id: Date.now(), // usamos la hora actual como id único
+        id: Date.now(),
         texto: nuevaTarea,
         completada: false,
       };
       setTareas([...tareas, tarea]);
-      setNuevaTarea(""); // limpiamos el input después de crear
+      setNuevaTarea("");
     }
   }
 
@@ -44,9 +50,27 @@ export default function Home() {
     );
   }
 
-  // DELETE: elimina una tarea de la lista
+  // DELETE (ahora "mueve a papelera" en vez de borrar para siempre)
   function eliminarTarea(id: number) {
-    setTareas(tareas.filter((t) => t.id !== id));
+    const tarea = tareas.find((t) => t.id === id);
+    if (!tarea) return;
+
+    setPapelera([...papelera, tarea]); // la agregamos a la papelera
+    setTareas(tareas.filter((t) => t.id !== id)); // la quitamos de la lista activa
+  }
+
+  // RESTAURAR: saca una tarea de la papelera y la regresa a la lista activa
+  function restaurarTarea(id: number) {
+    const tarea = papelera.find((t) => t.id === id);
+    if (!tarea) return;
+
+    setTareas([...tareas, tarea]);
+    setPapelera(papelera.filter((t) => t.id !== id));
+  }
+
+  // ELIMINAR DEFINITIVO: borra una tarea de la papelera para siempre
+  function eliminarDefinitivo(id: number) {
+    setPapelera(papelera.filter((t) => t.id !== id));
   }
 
   // Empieza el modo edición al hacer clic sobre el texto
@@ -62,75 +86,105 @@ export default function Home() {
         t.id === id ? { ...t, texto: textoEditado } : t
       )
     );
-    setEditandoId(null); // salimos del modo edición
+    setEditandoId(null);
   }
 
   return (
     <main style={{ maxWidth: "500px", margin: "50px auto", fontFamily: "sans-serif" }}>
-      <h1>Mi Lista de Tareas</h1>
+      {/* Encabezado con título y botón de papelera, como el álbum de Fotos */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+        <h1>{vista === "tareas" ? "Mi Lista de Tareas" : "Papelera"}</h1>
 
-      {/* Input para crear una nueva tarea (solo con Enter, sin botón) */}
-      <input
-        type="text"
-        placeholder="Escribe una tarea y presiona Enter..."
-        value={nuevaTarea}
-        onChange={(e) => setNuevaTarea(e.target.value)}
-        onKeyDown={crearTarea}
-        style={{ width: "100%", padding: "8px", marginBottom: "20px" }}
-      />
+        {vista === "tareas" ? (
+          <button onClick={() => setVista("papelera")}>
+            🗑️ Papelera ({papelera.length})
+          </button>
+        ) : (
+          <button onClick={() => setVista("tareas")}>← Volver</button>
+        )}
+      </div>
 
-      {/* Lista de tareas */}
-      <ul style={{ listStyle: "none", padding: 0 }}>
-        {tareas.map((tarea) => (
-          <li
-            key={tarea.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              marginBottom: "8px",
-            }}
-          >
-            {/* Checkbox para completar */}
-            <input
-              type="checkbox"
-              checked={tarea.completada}
-              onChange={() => toggleCompletada(tarea.id)}
-            />
+      {/* VISTA: LISTA DE TAREAS ACTIVAS */}
+      {vista === "tareas" && (
+        <>
+          <input
+            type="text"
+            placeholder="Escribe una tarea y presiona Enter..."
+            value={nuevaTarea}
+            onChange={(e) => setNuevaTarea(e.target.value)}
+            onKeyDown={crearTarea}
+            style={{ width: "100%", padding: "8px", marginBottom: "20px" }}
+          />
 
-            {/* Si esta tarea está en modo edición, mostramos un input */}
-            {editandoId === tarea.id ? (
-              <input
-                type="text"
-                value={textoEditado}
-                onChange={(e) => setTextoEditado(e.target.value)}
-                onBlur={() => guardarEdicion(tarea.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") guardarEdicion(tarea.id);
-                }}
-                autoFocus
-                style={{ flex: 1, padding: "4px" }}
-              />
-            ) : (
-              // Si no está en edición, mostramos el texto normal
-              // Al hacer clic, entramos en modo edición
-              <span
-                onClick={() => empezarEdicion(tarea)}
-                style={{
-                  flex: 1,
-                  textDecoration: tarea.completada ? "line-through" : "none",
-                  cursor: "pointer",
-                }}
+          <ul style={{ listStyle: "none", padding: 0 }}>
+            {tareas.map((tarea) => (
+              <li
+                key={tarea.id}
+                style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}
               >
+                <input
+                  type="checkbox"
+                  checked={tarea.completada}
+                  onChange={() => toggleCompletada(tarea.id)}
+                />
+
+                {editandoId === tarea.id ? (
+                  <input
+                    type="text"
+                    value={textoEditado}
+                    onChange={(e) => setTextoEditado(e.target.value)}
+                    onBlur={() => guardarEdicion(tarea.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") guardarEdicion(tarea.id);
+                    }}
+                    autoFocus
+                    style={{ flex: 1, padding: "4px" }}
+                  />
+                ) : (
+                  <span
+                    onClick={() => empezarEdicion(tarea)}
+                    style={{
+                      flex: 1,
+                      textDecoration: tarea.completada ? "line-through" : "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {tarea.texto}
+                  </span>
+                )}
+
+                <button onClick={() => eliminarTarea(tarea.id)}>🗑️</button>
+              </li>
+            ))}
+          </ul>
+
+          {tareas.length === 0 && (
+            <p style={{ color: "#888" }}>No tienes tareas activas.</p>
+          )}
+        </>
+      )}
+
+      {/* VISTA: PAPELERA */}
+      {vista === "papelera" && (
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {papelera.map((tarea) => (
+            <li
+              key={tarea.id}
+              style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}
+            >
+              <span style={{ flex: 1, color: "#888", textDecoration: "line-through" }}>
                 {tarea.texto}
               </span>
-            )}
+              <button onClick={() => restaurarTarea(tarea.id)}>↩️ Restaurar</button>
+              <button onClick={() => eliminarDefinitivo(tarea.id)}>❌ Eliminar</button>
+            </li>
+          ))}
 
-            {/* Botón para eliminar */}
-            <button onClick={() => eliminarTarea(tarea.id)}>🗑️</button>
-          </li>
-        ))}
-      </ul>
+          {papelera.length === 0 && (
+            <p style={{ color: "#888" }}>La papelera está vacía.</p>
+          )}
+        </ul>
+      )}
     </main>
   );
 }
