@@ -1,4 +1,4 @@
-# Todo App CUC
+# Todo App CUCC
 
 Aplicación de lista de tareas (To-Do List) desarrollada como proyecto de la asignatura de Desarrollo de Software, usando Next.js, React y TypeScript.
 
