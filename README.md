@@ -2,7 +2,7 @@
 
 Aplicación de lista de tareas (To-Do List) desarrollada como proyecto de la asignatura de Desarrollo de Software, usando Next.js, React y TypeScript.
 
-## Descripción
+## Descripciónn 
 
 Permite crear, visualizar, completar, editar y eliminar tareas. Las tareas eliminadas no se pierden: se guardan en una Papelera desde donde se pueden restaurar o eliminar definitivamente.
 
